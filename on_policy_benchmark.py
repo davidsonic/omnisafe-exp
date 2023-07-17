@@ -19,7 +19,7 @@ import warnings
 import torch
 
 from omnisafe.common.experiment_grid import ExperimentGrid
-from omnisafe.utils.exp_grid_tools import train
+from omnisafe.utils.exp_grid_tools2 import train
 
 
 if __name__ == '__main__':
