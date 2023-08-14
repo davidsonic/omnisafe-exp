@@ -130,8 +130,8 @@ class NPGPD(TRPO):
         for k in range(self._cfgs.algo_cfgs.k_iters): 
             idx = np.random.randint(n, size=(n//3,))
             grad_log = self._sgd_step(obs[idx], act[idx])
-            wr = self._proj_ball(wr - 2 * actor_lr * (torch.dot(wr, grad_log) - adv_r[k]) * grad_log)
-            wc = self._proj_ball(wc - 2 * actor_lr * (torch.dot(wc, grad_log) - adv_c[k]) * grad_log)
+            wr = self._proj_ball(wr - 2 * actor_lr * (torch.dot(wr, grad_log) - adv_r[idx].mean()) * grad_log)
+            wc = self._proj_ball(wc - 2 * actor_lr * (torch.dot(wc, grad_log) - adv_c[idx].mean()) * grad_log)
             wrs.append(wr)
             wcs.append(wc)
 
@@ -143,7 +143,7 @@ class NPGPD(TRPO):
         step_direction = x
         assert torch.isfinite(step_direction).all(), 'step_direction is not finite'
 
-        theta_new = theta_old + step_direction
+        theta_new = theta_old + step_direction * actor_lr
         set_param_values_to_model(self._actor_critic.actor, theta_new)
 
         with torch.no_grad():
