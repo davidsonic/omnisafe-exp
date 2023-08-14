@@ -1,0 +1,8 @@
+examples/runs/
+examples/runs/NPGPD-*
+**/__pycache__/
+**/*.pyc
+omnisafe/algorithms/on_policy/naive_lagrange/__pycache__/npg_pd.cpython-310.pyc
+omnisafe/algorithms/on_policy/base/__pycache__/policy_gradient.cpython-310.pyc
+examples/runs/NPGPD-{SafetyPointGoal1-v0}/seed-000-2023-08-14-01-30-07/progress.csv
+examples/runs/NPGPD-{SafetyPointGoal1-v0}/seed-000-2023-08-14-01-30-07/tb/events.out.tfevents.1691976607.47160ae63a66.1870.0

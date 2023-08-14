@@ -14,11 +14,20 @@
 # ==============================================================================
 """Implementation of the NPGPD algorithm."""
 
+import numpy as np
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 from omnisafe.algorithms import registry
 from omnisafe.algorithms.on_policy.base.trpo import TRPO
 from omnisafe.common.lagrange import Lagrange
+from omnisafe.utils import distributed
+from omnisafe.utils.tools import (
+    get_flat_gradients_from,
+    get_flat_params_from,
+    set_param_values_to_model,
+)
+
 
 
 @registry.register
@@ -48,6 +57,106 @@ class NPGPD(TRPO):
         super()._init_log()
         self._logger.register_key('Metrics/LagrangeMultiplier', min_and_max=True)
 
+
+    def _sgd_step(
+        self,
+        obs: torch.Tensor,
+        act: torch.Tensor,
+    ) -> torch.Tensor: 
+        """Return grad_log respect to theta
+        Take a SGD step but do not update the actor
+        """
+        self._actor_critic.actor.zero_grad()
+        distribution = self._actor_critic.actor(obs)
+        logp_  = self._actor_critic.actor.log_prob(act)
+        loss = -logp_.mean()
+        self._logger.store(
+            {
+                'Train/GradientStep': loss.mean().item(),
+            }
+        )
+        loss.backward()
+        distributed.avg_grads(self._actor_critic.actor)
+        grads = get_flat_gradients_from(self._actor_critic.actor)
+        return grads
+        
+
+
+    def _proj_ball(self, x: torch.Tensor): 
+        """Return the projection of x onto unit ball
+        """
+        assert x.ndim == 1, 'x must be a flattened tensor'
+        return x if x.norm().item() <=1 else x / x.norm()
+        
+
+
+    def _update_actor(  # pylint: disable=too-many-arguments,too-many-locals
+        self,
+        obs: torch.Tensor,
+        act: torch.Tensor,
+        logp: torch.Tensor,
+        adv_r: torch.Tensor,
+        adv_c: torch.Tensor,
+    ) -> None:
+        """Update policy network.
+
+            - Compute the gradient of the policy.
+            - Compute the step direction using NPG-PD estimate
+            - Search for a step size that satisfies the constraint.
+            - Update the policy network.
+
+            Args:
+                obs (torch.Tensor): The observation tensor.
+                act (torch.Tensor): The action tensor.
+                logp (torch.Tensor): The log probability of the action.
+                adv_r (torch.Tensor): The reward advantage tensor.
+                adv_c (torch.Tensor): The cost advantage tensor.
+        """
+        self._fvp_obs = obs[:: self._cfgs.algo_cfgs.fvp_sample_freq]
+        theta_old = get_flat_params_from(self._actor_critic.actor)
+        self._actor_critic.actor.zero_grad()
+        adv = self._compute_adv_surrogate(adv_r, adv_c)
+
+        
+        wrs = wcs = []
+        wr = torch.zeros_like(theta_old)
+        wc = torch.zeros_like(theta_old)
+        # actor_lr = self._actor_critic.actor_scheduler.get_last_lr()[0]
+        n = len(obs)
+        assert n == len(act)
+        actor_lr = 0.001
+        # import pdb
+        
+        for k in range(self._cfgs.algo_cfgs.k_iters): 
+            idx = np.random.randint(n, size=(n//3,))
+            grad_log = self._sgd_step(obs[idx], act[idx])
+            wr = self._proj_ball(wr - 2 * actor_lr * (torch.dot(wr, grad_log) - adv_r[k]) * grad_log)
+            wc = self._proj_ball(wc - 2 * actor_lr * (torch.dot(wc, grad_log) - adv_c[k]) * grad_log)
+            wrs.append(wr)
+            wcs.append(wc)
+
+        # pdb.set_trace()
+        wr = torch.stack(wrs).mean(0)
+        wc = torch.stack(wcs).mean(0)
+
+        x = wr + wc * self._cfgs.algo_cfgs.lam_rc 
+        step_direction = x
+        assert torch.isfinite(step_direction).all(), 'step_direction is not finite'
+
+        theta_new = theta_old + step_direction
+        set_param_values_to_model(self._actor_critic.actor, theta_new)
+
+        with torch.no_grad():
+            loss = self._loss_pi(obs, act, logp, adv)
+
+        self._logger.store(
+            {
+                'Misc/FinalStepNorm': torch.norm(step_direction).mean().item(),
+            },
+        )
+
+        
+
     def _update(self) -> None:
         r"""Update actor, critic, as we used in the :class:`PolicyGradient` algorithm.
 
@@ -73,9 +182,48 @@ class NPGPD(TRPO):
         # first update Lagrange multiplier parameter
         self._lagrange.update_lagrange_multiplier(Jc)
         # then update the policy and value function
-        super()._update()
+        
+        #. Get the data from buffer.
+        #. Shuffle the data and split it into mini-batch data.
+        data = self._buf.get()
+        obs, act, logp, target_value_r, target_value_c, adv_r, adv_c = (
+            data['obs'],
+            data['act'],
+            data['logp'],
+            data['target_value_r'],
+            data['target_value_c'],
+            data['adv_r'],
+            data['adv_c'],
+        )
+
+        self._update_actor(obs, act, logp, adv_r, adv_c)
+
+        dataloader = DataLoader(
+            dataset=TensorDataset(obs, target_value_r, target_value_c),
+            batch_size=self._cfgs.algo_cfgs.batch_size,
+            shuffle=True,
+        )
+
+        for _ in range(self._cfgs.algo_cfgs.update_iters):
+            for (
+                obs,
+                target_value_r,
+                target_value_c,
+            ) in dataloader:
+                self._update_reward_critic(obs, target_value_r)
+                if self._cfgs.algo_cfgs.use_cost:
+                    self._update_cost_critic(obs, target_value_c)
+
+        self._logger.store(
+            {
+                'Train/StopIter': self._cfgs.algo_cfgs.update_iters,
+                'Value/Adv': adv_r.mean().item(),
+            },
+        )
 
         self._logger.store({'Metrics/LagrangeMultiplier': self._lagrange.lagrangian_multiplier})
+
+
 
     def _compute_adv_surrogate(self, adv_r: torch.Tensor, adv_c: torch.Tensor) -> torch.Tensor:
         r"""Compute surrogate loss.

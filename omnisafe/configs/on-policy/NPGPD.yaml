@@ -32,6 +32,7 @@ defaults:
   algo_cfgs:
     # number of steps to update the policy
     steps_per_epoch: 20000
+    # steps_per_epoch: 1000
     # number of iterations to update the policy
     update_iters: 10
     # batch size for each iteration
@@ -70,7 +71,7 @@ defaults:
     standardized_rew_adv: True
     # standardize cost advantage
     standardized_cost_adv: True
-    # penalty coefficient
+    # penalty coefficient 
     penalty_coef: 0.0
     # use cost
     use_cost: True
@@ -82,6 +83,10 @@ defaults:
     fvp_obs: None
     # The sub-sampling rate of the observation
     fvp_sample_freq: 1
+    # Number of iterations (k) for estimating actor decent direction
+    k_iters: 3
+    # lambda for wr and wc
+    lam_rc: 0.5
   # logger configurations
   logger_cfgs:
     # use wandb for logging
