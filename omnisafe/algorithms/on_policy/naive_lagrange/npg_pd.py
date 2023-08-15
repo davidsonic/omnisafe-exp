@@ -116,7 +116,9 @@ class NPGPD(TRPO):
         theta_old = get_flat_params_from(self._actor_critic.actor)
         self._actor_critic.actor.zero_grad()
         adv = self._compute_adv_surrogate(adv_r, adv_c)
-
+        loss = self._loss_pi(obs, act, logp, adv)
+        loss.backward()
+        distributed.avg_grads(self._actor_critic.actor)
         
         wrs = wcs = []
         wr = torch.zeros_like(theta_old)
