@@ -1,74 +1,37 @@
 <!-- markdownlint-disable first-line-h1 -->
 <!-- markdownlint-disable html -->
 
-<div align="center">
-  <img src="https://github.com/PKU-Alignment/omnisafe/raw/HEAD/images/logo.png" width="75%"/>
-</div>
+## Generate exp plots
+The script will copy experiments under `runs` into the following structure: 
+```
+runs/
+    SafetyAntVelocity-v1/
+        CPO/
+            seed0/
+            seed5/
+            seed10/
+        PCPO/
+            seed0/
+            seed5/
+            seed10/
+    SafetyHalfCheetahVelocity-v1/
+        CPO/
+            seed0/
+            seed5/
+            seed10/
+        PCPO/
+            seed0/
+            seed5/
+            seed10/
+```
 
-<div align="center">
-
-  [![Organization](https://img.shields.io/badge/Organization-PKU--Alignment-blue)](https://github.com/PKU-Alignment)
-  [![PyPI](https://img.shields.io/pypi/v/omnisafe?logo=pypi)](https://pypi.org/project/omnisafe)
-  [![tests](https://img.shields.io/github/actions/workflow/status/PKU-Alignment/omnisafe/test.yml?label=tests&logo=github)](https://github.com/PKU-Alignment/omnisafe/tree/HEAD/tests)
-  [![Documentation Status](https://img.shields.io/readthedocs/omnisafe?logo=readthedocs)](https://omnisafe.readthedocs.io)
-  [![Downloads](https://static.pepy.tech/personalized-badge/omnisafe?period=total&left_color=grey&right_color=blue&left_text=downloads)](https://pepy.tech/project/omnisafe)
-  [![GitHub Repo Stars](https://img.shields.io/github/stars/PKU-Alignment/omnisafe?color=brightgreen&logo=github)](https://github.com/PKU-Alignment/OmniSafe/stargazers)
-  [![codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-  [![License](https://img.shields.io/github/license/PKU-Alignment/OmniSafe?label=license)](#license)
-  [![CodeCov](https://img.shields.io/codecov/c/github/PKU-Alignment/omnisafe/main?logo=codecov)](https://app.codecov.io/gh/PKU-Alignment/omnisafe)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/PKU-Alignment/omnisafe/)
-
-</div>
-
-<p align="center">
-  <a href="https://omnisafe.readthedocs.io">Documentation</a> |
-  <a href="https://github.com/PKU-Alignment/omnisafe#implemented-algorithms">Implemented Algorithms</a> |
-  <a href="https://github.com/PKU-Alignment/omnisafe#installation">Installation</a> |
-  <a href="https://github.com/PKU-Alignment/omnisafe#getting-started">Getting Started</a> |
-  <a href="https://github.com/PKU-Alignment/omnisafe#license">License</a>
-</p>
-
---------------------------------------------------------------------------------
-
-OmniSafe is an infrastructural framework designed to accelerate safe reinforcement learning (RL) research.
-It provides a comprehensive and reliable benchmark for safe RL algorithms, and also an out-of-box modular toolkit for researchers.
-SafeRL intends to develop algorithms that minimize the risk of unintended harm or unsafe behavior.
-
-OmniSafe stands as the inaugural unified learning framework in the realm of safe reinforcement learning, aiming to foster the Growth of SafeRL Learning Community.
-The key features of OmniSafe:
-
-- **Highly Modular Framework.** OmniSafe presents a highly modular framework, incorporating an extensive collection of tens of algorithms tailored for safe reinforcement learning across diverse domains. This framework is versatile due to its abstraction of various algorithm types and well-designed API, using the Adapter and Wrapper design components to bridge gaps and enable seamless interactions between different components. This design allows for easy extension and customization, making it a powerful tool for developers working with different types of algorithms.
-
-- **High-performance parallel computing acceleration.** By harnessing the capabilities of `torch.distributed`, OmniSafe accelerates the learning process of algorithms
-with process parallelism. This enables OmniSafe not only to support environment-level asynchronous parallelism but also incorporates agent asynchronous learning. This methodology bolsters training stability and expedites the training process via the deployment of a parallel exploration mechanism. The integration of agent asynchronous learning in OmniSafe underscores its commitment to providing a versatile and robust platform for advancing SafeRL research.
-
-- **Out-of-box toolkits.** OmniSafe offers customizable toolkits for tasks like training, benchmarking, analyzing, and rendering. [Tutorials](https://github.com/PKU-Alignment/omnisafe#getting-started) and user-friendly [APIs](https://omnisafe.readthedocs.io/en/latest/baserlapi/on_policy.html) make it easy for beginners and average users, while advanced researchers can enhance their efficiency without complex code.
-
-![Train video](https://github-production-user-asset-6210df.s3.amazonaws.com/73586554/237139607-d1e6f413-aa2c-4f68-b8ee-08a4361493a0.gif)
-
---------------------------------------------------------------------------------
-
-### Table of Contents  <!-- omit in toc --> <!-- markdownlint-disable heading-increment -->
-
-- [Quick Start](#quick-start)
-  - [Installation](#installation)
-    - [Prerequisites](#prerequisites)
-    - [Install from source](#install-from-source)
-    - [Install from PyPI](#install-from-pypi)
-- [Implemented Algorithms](#implemented-algorithms)
-  - [Examples](#examples)
-    - [Algorithms Registry](#algorithms-registry)
-    - [Supported Environments](#supported-environments)
-    - [Try with CLI](#try-with-cli)
-- [Getting Started](#getting-started)
-  - [Important Hints](#important-hints)
-  - [Quickstart: Colab on the Cloud](#quickstart-colab-on-the-cloud)
-- [Changelog](#changelog)
-- [Citing OmniSafe](#citing-omnisafe)
-- [The OmniSafe Team](#the-omnisafe-team)
-- [License](#license)
-
---------------------------------------------------------------------------------
+Command:
+```python
+cd omnisafe-exp/examples
+python3 prepare_plot.py
+```
+The generated plots will be saved under the `examples` folder, suffixed with `.png`. 
+To reproduce the experiments, refer to the commands in `train.sh`.
 
 ## Quick Start
 
