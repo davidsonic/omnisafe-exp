@@ -17,7 +17,7 @@
 
 import argparse
 
-from omnisafe.utils.plotter import Plotter
+from omnisafe.utils.plotter2 import Plotter
 
 
 # For example, you can run the following command to plot the training curve:
