@@ -4,7 +4,7 @@
 ## Generate exp plots
 The script will copy experiments under `runs` into the following structure: 
 ```
-runs/
+exps/
     SafetyAntVelocity-v1/
         CPO/
             seed0/
